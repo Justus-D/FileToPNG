@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.skin.SplitPaneSkin.ContentDivider?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ProgressIndicator?>
+<AnchorPane prefHeight="400.0" prefWidth="600.0" minHeight="400.0" minWidth="600.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="de.justusd.filetopng.controllers.MainController">
+    <HBox fx:id="hBox" prefHeight="400.0" prefWidth="600.0">
+        <TabPane fx:id="tabPane" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE">
+            <Tab text="File to PNG">
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="600.0">
+                    <VBox style="-fx-spacing: 2; -fx-padding: 20">
+                        <Label>Choose an input file</Label>
+                        <HBox style="-fx-spacing: 4">
+                            <Button fx:id="chooseFileButton" onAction="#handleChooseInputFile">Choose File</Button>
+                            <Label fx:id="selectedFileLabel">No file selected</Label>
+                        </HBox>
+                        <Label></Label>
+                        <Label>Choose an output directory</Label>
+                        <HBox style="-fx-spacing: 4">
+                            <Button fx:id="chooseOutputFolderButton" onAction="#handleChooseOutputFolder">Choose Folder</Button>
+                            <Label fx:id="selectedOutputDirectoryLabel">No output directory selected</Label>
+                        </HBox>
+                        <Label></Label>
+                        <VBox style="-fx-spacing: 4">
+                            <Button fx:id="saveButton" onAction="#handleSave" disable="true">Save</Button>
+                            <ProgressBar fx:id="saveProgressBar" visible="false" />
+                            <Label fx:id="saveStatus"></Label>
+                        </VBox>
+                    </VBox>
+                </AnchorPane>
+            </Tab>
+            <Tab text="PNG to File">
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="600.0">
+                    <VBox style="-fx-spacing: 2; -fx-padding: 20">
+                        <Label>Choose PNG File(s)</Label>
+                        <Button fx:id="choosePNGButton">Choose File(s)</Button>
+                    </VBox>
+                </AnchorPane>
+            </Tab>
+        </TabPane>
+    </HBox>
+</AnchorPane>

@@ -3,6 +3,7 @@ module de.justusd.filetopng {
     requires javafx.fxml;
     requires pngj;
     requires annotations;
+    requires java.desktop;
 
 
     opens de.justusd.filetopng to javafx.fxml;
