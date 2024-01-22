@@ -42,27 +42,31 @@ public class MainController {
     }
 
     public void handleChooseInputFile(ActionEvent event) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Input file");
-        Stage stage = new Stage();
-        File inputFileUpdate = fileChooser.showOpenDialog(stage);
-        if (inputFileUpdate != null) {
-            this.inputFile = inputFileUpdate;
-            this.selectedFileLabel.setText(this.inputFile.getName());
-        }
-        this.updateSaveButton();
+        Platform.runLater(() -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Input file");
+            Stage stage = new Stage();
+            File inputFileUpdate = fileChooser.showOpenDialog(stage);
+            if (inputFileUpdate != null) {
+                this.inputFile = inputFileUpdate;
+                this.selectedFileLabel.setText(this.inputFile.getName());
+            }
+            this.updateSaveButton();
+        });
     }
 
     public void handleChooseOutputFolder(ActionEvent event) {
-        DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Output directory for generated PNGs");
-        Stage stage = new Stage();
-        File outputDirectoryUpdate = directoryChooser.showDialog(stage);
-        if (outputDirectoryUpdate != null) {
-            this.outputDirectory = outputDirectoryUpdate;
-            this.selectedOutputDirectoryLabel.setText(this.outputDirectory.getAbsolutePath());
-        }
-        this.updateSaveButton();
+        Platform.runLater(() -> {
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            directoryChooser.setTitle("Output directory for generated PNGs");
+            Stage stage = new Stage();
+            File outputDirectoryUpdate = directoryChooser.showDialog(stage);
+            if (outputDirectoryUpdate != null) {
+                this.outputDirectory = outputDirectoryUpdate;
+                this.selectedOutputDirectoryLabel.setText(this.outputDirectory.getAbsolutePath());
+            }
+            this.updateSaveButton();
+        });
     }
     public void updateSaveButton() {
         this.saveButton.setDisable(this.inputFile == null || this.outputDirectory == null);
