@@ -8,7 +8,9 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,6 +74,10 @@ public class FileToPNG {
         }
     }
 
+    public void joinThread() throws InterruptedException {
+        if (this.thread != null) this.thread.join();
+    }
+
     public static void main(String[] args) {
         File inputFile = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\agpl-3.0.md");
         File outputDirectory = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\out\\");
@@ -79,12 +85,13 @@ public class FileToPNG {
         try {
             FileToPNG fileToPNG = new FileToPNG(inputFile, outputDirectory);
             fileToPNG.save();
-        } catch (IOException e) {
+            fileToPNG.joinThread();
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    private static int edgeSize(long fileSize) {
+    public static int edgeSize(long fileSize) {
         if (fileSize <= 3_000_000) return 1_000;
         if (fileSize <= 12_000_000) return 2_000;
         if (fileSize <= 27_000_000) return 3_000;
@@ -105,6 +112,19 @@ public class FileToPNG {
         if (fileSize <= 972_000_000) return 18_000;
         if (fileSize <= 1_083_000_000) return 19_000;
         return 20_000;
+    }
+
+    public static long contentLengthForPart(long fileSize, int partIndex) {
+        long remainingSize = fileSize;
+        int part = 0;
+        while (remainingSize > 0) {
+            int edgeSize = edgeSize(remainingSize);
+            long partLength = Math.min(remainingSize, (long) edgeSize * edgeSize * 3L);
+            remainingSize -= partLength;
+            if (part == partIndex) return partLength;
+            part++;
+        }
+        return 0L;
     }
 
     private static int maxContentBytes(int edgeSize) {
@@ -175,6 +195,49 @@ public class FileToPNG {
         thread.start();
     }
 
+    @NotNull
+    private MessageDigest getMdInstance() {
+        MessageDigest messageDigest = null;
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-256");
+            return messageDigest;
+        } catch (NoSuchAlgorithmException ignored) {} // this will never happen
+        return this.getMdInstance(); // yeah
+    }
+
+    private ImageLineByte whiteLine(ImageInfo imgI) {
+        ImageLineByte imgL = new ImageLineByte(imgI);
+        byte[] bytes = imgL.getScanline();
+        Arrays.fill(bytes, (byte) 0b11111111);
+        return imgL;
+    }
+
+    private ImageLineByte utf8TextLine(@NotNull ImageInfo imgI, @NotNull String... text) {
+        int totalLength = 0;
+        for (String s : text) totalLength += s.length();
+        StringBuilder sb = new StringBuilder(totalLength);
+        for (String s : text) {
+            sb.append(s);
+        }
+        return utf8TextLine(imgI, sb.toString());
+    }
+
+    private ImageLineByte utf8TextLine(@NotNull ImageInfo imgI, @NotNull String text) {
+        return this.byteArrayLine(imgI, text.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private ImageLineByte byteArrayLine(@NotNull ImageInfo imgI, @NotNull byte[] dataBytes) {
+        return this.byteArrayLine(imgI, dataBytes, (byte) 0xff);
+    }
+
+    private ImageLineByte byteArrayLine(@NotNull ImageInfo imgI, @NotNull byte[] dataBytes, byte fillWith) {
+        ImageLineByte imgL = new ImageLineByte(imgI);
+        byte[] bytes = imgL.getScanline();
+        System.arraycopy(dataBytes, 0, bytes, 0, dataBytes.length);
+        Arrays.fill(bytes, dataBytes.length, bytes.length - 1, (byte) 0xff);
+        return imgL;
+    }
+
     public void saveSync() throws IOException {
         if (this.saveInProgress || this.restoreInProgress) throw new IOException("Already running save or restore");
         this.saveInProgress = true;
@@ -186,6 +249,8 @@ public class FileToPNG {
         long fileSizeSqrt = (long) Math.sqrt((double) fileSize / 3) + 1000;
 
         List<File> outputFiles = new ArrayList<>();
+        List<MessageDigest> messageDigests = new ArrayList<>();
+        MessageDigest digestAll = this.getMdInstance();
 
         int paddingTop = 96;
         int paddingBottom = 32;
@@ -195,38 +260,74 @@ public class FileToPNG {
         while (remainingBytes > 0) {
             File partFile = new File(this.directory.getAbsolutePath() + "\\" + "part" + partNo + ".png");
             outputFiles.add(partFile);
-            partNo++;
+            MessageDigest digestPart = this.getMdInstance();
+            messageDigests.add(digestPart);
             int edge = edgeSize(remainingBytes);
             remainingBytes -= maxContentBytes(edge);
             ImageInfo imgI = new ImageInfo(edge, edge + paddingTop + paddingBottom, 8, false);
             PngWriter pngW = new PngWriter(partFile, imgI, true);
 
-            // Metadata at the top, previous checksum or digest
-            for (int row = 0; row < paddingTop; row++) {
+            // Header: metadata, previous checksum or digest
+            int headerRow = 0;
+            pngW.writeRow(utf8TextLine(imgI, "de.justusd.filetopng\0"), headerRow++); // header[0] // magic bytes
+            pngW.writeRow(utf8TextLine(imgI,
+                    "version=1;",
+                    "part=" + partNo + ";",
+                    "contentLength=" + ";",
+                    "edge=" + edge + ";",
+                    "paddingTop=" + paddingTop + ";",
+                    "paddingBottom=" + paddingBottom + ";",
+                    "digestAlgorithm=SHA-256;",
+                    "digestLength=32;", // SHA-256: 256 bits = 32 bytes
+                    "previousDigestIndex=2;",
+                    "fileNameIndex=3;",
+                    "\0"
+            ), headerRow++); // header[1] // header data
+
+            MessageDigest previousDigest = null;
+            int prevPartIndex = partNo - 1;
+            if (!(prevPartIndex < 0 || prevPartIndex >= messageDigests.size())) {
+                previousDigest = messageDigests.get(prevPartIndex);
+            }
+            if (previousDigest != null) {
+                pngW.writeRow(byteArrayLine(imgI, previousDigest.digest()), headerRow++); // header[2] // digest of previous part
+            } else {
+                pngW.writeRow(whiteLine(imgI), headerRow++); // header[2] // white if no digest
+            }
+
+            pngW.writeRow(utf8TextLine(imgI, file.getName() + "\0"), headerRow++); // header[3] // fileName, nullbyte terminated
+
+            for (int row = headerRow; row < paddingTop; row++) { // fill up to line paddingTop
                 ImageLineByte imgL = new ImageLineByte(imgI);
                 byte[] bytes = imgL.getScanline();
-                Arrays.fill(bytes, (byte) 0b11111111);
+                Arrays.fill(bytes, (byte) 0xff);
                 pngW.writeRow(imgL, row);
             }
 
-            // Data bytes
+            // Body: data bytes
             for (int row = paddingTop; row < edge + paddingTop; row++) {
                 ImageLineByte imgL = new ImageLineByte(imgI);
                 byte[] bytes = imgL.getScanline();
                 int bytesRead = inputStream.read(bytes);
-                this.processedNBytes(bytesRead);
                 pngW.writeRow(imgL, row);
-                if (bytesRead == 0) break;
+                if (bytesRead > 0) {
+                    digestPart.update(bytes, 0, bytesRead);
+                    digestAll.update(bytes, 0, bytesRead);
+                    this.processedNBytes(bytesRead);
+                }
             }
 
-            // Checksum or digest
-            for (int row = paddingTop + edge; row < paddingTop + edge + paddingBottom; row++) {
+            // Footer: checksum or digest
+            int rowFooter = edge + paddingTop;
+            pngW.writeRow(whiteLine(imgI), rowFooter++); // footer[0]
+            for (int row = rowFooter; row < paddingTop + edge + paddingBottom; row++) {
                 ImageLineByte imgL = new ImageLineByte(imgI);
                 byte[] bytes = imgL.getScanline();
-                Arrays.fill(bytes, (byte) 0b11111111);
+                Arrays.fill(bytes, (byte) 0xff);
                 pngW.writeRow(imgL, row);
             }
 
+            partNo++;
             pngW.close();
 
         }

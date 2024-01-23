@@ -99,6 +99,8 @@ public class MainController {
 
     public void handleSave(ActionEvent actionEvent) {
         if (this.inputFile == null || this.outputDirectory == null || this.fileToPNG != null) return;
+        this.chooseFileButton.setDisable(true);
+        this.chooseOutputFolderButton.setDisable(true);
         try {
             this.fileToPNG = new FileToPNG(inputFile, outputDirectory);
             FileToPNG f2p = this.fileToPNG;
@@ -111,11 +113,17 @@ public class MainController {
                             changeEvent.getNewValue();
                             float progress = f2p.progressPercentage();
                             MainController.this.saveProgressBar.setProgress(progress);
-                            MainController.this.saveStatus.setText("Bytes read: " + f2p.getBytesProcessed() + " / " + f2p.getBytesTotal() + " / " + ((int) (f2p.progressPercentage() * 100)) + " %");
+                            MainController.this.saveStatus.setText("Bytes processed: " + f2p.getBytesProcessed() + " / " + f2p.getBytesTotal() + " / " + ((int) (f2p.progressPercentage() * 100)) + " %");
                         }
                         else if (propertyName.equals("finished")) {
                             if (changeEvent.getNewValue().equals(true)) {
                                 MainController.this.saveStatus.setText("Done.");
+                                try {
+                                    f2p.joinThread();
+                                    MainController.this.chooseFileButton.setDisable(false);
+                                    MainController.this.chooseOutputFolderButton.setDisable(false);
+                                    MainController.this.fileToPNG = null;
+                                } catch (InterruptedException ignore) {}
                             }
                         }
                     });

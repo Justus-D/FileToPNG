@@ -13,8 +13,8 @@
 <?import javafx.scene.control.ProgressIndicator?>
 <AnchorPane prefHeight="400.0" prefWidth="600.0" minHeight="400.0" minWidth="600.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="de.justusd.filetopng.controllers.MainController">
-    <HBox fx:id="hBox" prefHeight="400.0" prefWidth="600.0">
-        <TabPane fx:id="tabPane" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE">
+    <HBox fx:id="hBox" prefHeight="400.0" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <TabPane fx:id="tabPane" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" HBox.hgrow="ALWAYS">
             <Tab text="File to PNG">
                 <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="600.0">
                     <VBox style="-fx-spacing: 2; -fx-padding: 20">
@@ -32,8 +32,9 @@
                         <Label></Label>
                         <VBox style="-fx-spacing: 4">
                             <Button fx:id="saveButton" onAction="#handleSave" disable="true">Save</Button>
-                            <ProgressBar fx:id="saveProgressBar" visible="false" />
+                            <Label></Label>
                             <Label fx:id="saveStatus"></Label>
+                            <ProgressBar fx:id="saveProgressBar" visible="false" />
                         </VBox>
                     </VBox>
                 </AnchorPane>
