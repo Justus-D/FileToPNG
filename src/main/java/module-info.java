@@ -1,9 +1,10 @@
 module de.justusd.filetopng {
     requires javafx.controls;
     requires javafx.fxml;
-    requires pngj;
-    requires annotations;
+    requires static pngj;
+    requires static annotations;
     requires java.desktop;
+    requires java.logging;
 
 
     opens de.justusd.filetopng to javafx.fxml;
