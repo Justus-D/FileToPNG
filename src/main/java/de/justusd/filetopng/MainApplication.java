@@ -11,11 +11,24 @@ public class MainApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("main-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 600, 400);
-        stage.setTitle("FileToPNG");
-        stage.setScene(scene);
-        stage.show();
+        if (isJavaFXAvailable()) {
+            FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("main-view.fxml"));
+            Scene scene = new Scene(fxmlLoader.load(), 600, 400);
+            stage.setTitle("FileToPNG");
+            stage.setScene(scene);
+            stage.show();
+        } else {
+            Main.showFallbackSwingDialog();
+        }
+    }
+
+    private boolean isJavaFXAvailable() {
+        try {
+            new Stage();
+            return true;
+        } catch (Error e) {
+            return false;
+        }
     }
 
     public static void main(String[] args) {
