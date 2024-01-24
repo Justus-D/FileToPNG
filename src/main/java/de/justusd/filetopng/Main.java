@@ -1,12 +1,6 @@
 package de.justusd.filetopng;
 
-import javax.swing.*;
-import javafx.application.*;
-import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
-import javafx.stage.Stage;
-
-import java.util.concurrent.atomic.AtomicBoolean;
+import javax.swing.JOptionPane;
 
 public class Main {
 
