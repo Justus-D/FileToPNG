@@ -5,15 +5,13 @@ import de.justusd.bdfutil.BdfFont;
 import de.justusd.bdfutil.Font;
 import org.jetbrains.annotations.NotNull;
 
+import javax.imageio.ImageReader;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -185,6 +183,22 @@ public class FileToPNG {
         Runnable runnable = () -> {
             try {
                 FileToPNG.this.saveSync();
+            } catch (IOException e) {
+                FileToPNG.this.occuredException = e;
+            }
+        };
+        if (this.thread != null) return;
+        Thread thread = new Thread(runnable);
+        this.thread = thread;
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    public synchronized void restore() throws IOException {
+        if (this.saveInProgress || this.restoreInProgress) throw new IOException("Already running save or restore");
+        Runnable runnable = () -> {
+            try {
+                FileToPNG.this.restoreSync();
             } catch (IOException e) {
                 FileToPNG.this.occuredException = e;
             }
@@ -399,10 +413,55 @@ public class FileToPNG {
         this.sendFinished();
     }
 
-    public void restore() throws IOException {
+    public void restoreSync() throws IOException {
         if (this.saveInProgress || this.restoreInProgress) throw new IOException("Already running save or restore");
         this.restoreInProgress = true;
 
+        File[] pngFiles = this.directory.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+        if (pngFiles == null || pngFiles.length == 0) {
+            throw new IOException("No PNG files found.");
+        }
+        Arrays.sort(pngFiles);
+        PngReaderByte[] pngReaders = new PngReaderByte[pngFiles.length];
+        @SuppressWarnings("unchecked")
+        Map<String, String>[] configs = new Map[pngFiles.length];
+        for (int i = 0; i < pngReaders.length; i++) {
+            pngReaders[i] = new PngReaderByte(pngFiles[i]);
+        }
+
+        FileOutputStream outputStream = new FileOutputStream(this.file);
+
+        // parse header data
+        for (PngReaderByte pngR : pngReaders) {
+            ImageLineByte imgL = pngR.readRowByte();
+            byte[] bytes = imgL.getScanline(); // header[0]
+            byte[] magicBytes = "de.justusd.filetopng".getBytes(StandardCharsets.UTF_8);
+            for (int i = 0; i < magicBytes.length; i++) {
+                if (bytes[i] != magicBytes[i]) throw new IOException("Magic byte mismatch!");
+            }
+        }
+
+        for (int i = 0; i < pngReaders.length; i++) {
+            PngReaderByte pngR = pngReaders[i];
+            ImageLineByte imgL = pngR.readRowByte();
+            byte[] bytes = imgL.getScanline(); // header[1]
+
+            int j;
+            for (j = 0; j < bytes.length && bytes[j] != (byte) 0x00; j++) continue;
+            String rawConfig = new String(bytes, 0, j, StandardCharsets.UTF_8);
+            String[] values = rawConfig.split(";");
+            Map<String, String> config = new HashMap<>();
+            for (String value : values) {
+                String[] kv = value.split("=");
+                if (kv.length == 2) {
+                    config.put(kv[0], kv[1]);
+                }
+            }
+            configs[i] = config;
+
+        }
+
+        outputStream.close();
     }
 
 }
