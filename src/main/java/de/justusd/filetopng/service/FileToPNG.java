@@ -1,6 +1,8 @@
 package de.justusd.filetopng.service;
 
 import ar.com.hjg.pngj.*;
+import de.justusd.bdfutil.BdfFont;
+import de.justusd.bdfutil.Font;
 import org.jetbrains.annotations.NotNull;
 
 import java.beans.PropertyChangeEvent;
@@ -9,11 +11,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class FileToPNG {
@@ -196,13 +197,8 @@ public class FileToPNG {
     }
 
     @NotNull
-    private MessageDigest getMdInstance() {
-        MessageDigest messageDigest = null;
-        try {
-            messageDigest = MessageDigest.getInstance("SHA-256");
-            return messageDigest;
-        } catch (NoSuchAlgorithmException ignored) {} // this will never happen
-        return this.getMdInstance(); // yeah
+    private Digest getMdInstance() {
+        return new Digest();
     }
 
     private ImageLineByte whiteLine(ImageInfo imgI) {
@@ -238,6 +234,50 @@ public class FileToPNG {
         return imgL;
     }
 
+    private int writeText(@NotNull ImageInfo imgI, @NotNull PngWriter pngW, @NotNull String text, @NotNull AtomicInteger rowIndex) throws IOException {
+        int linesWritten = 0;
+
+        BdfFont font = new BdfFont(Font.SPLEEN_8x16);
+
+        List<List<Byte>> rows = new ArrayList<>(font.getPixelSize());
+        for (int i = 0; i < font.getPixelSize(); i++) {
+            rows.add(new ArrayList<>(8 * 12));
+        }
+
+        for (char c : text.toCharArray()) {
+            boolean[][] pixels = font.getGlyph(c).getPixelMatrix();
+            int currentRow = 0;
+            for (boolean[] row : pixels) {
+                for (boolean p : row) {
+                    rows.get(currentRow % rows.size()).add(p ? (byte) 0x00 : (byte) 0xff);
+                    rows.get(currentRow % rows.size()).add(p ? (byte) 0x00 : (byte) 0xff);
+                    rows.get(currentRow % rows.size()).add(p ? (byte) 0x00 : (byte) 0xff);
+                }
+                currentRow++;
+            }
+        }
+
+        for (List<Byte> row : rows) {
+            Byte[] bytes = row.toArray(new Byte[0]);
+            byte[] pBytes = new byte[bytes.length];
+            for (int i = 0; i < bytes.length; i++) pBytes[i] = bytes[i];
+            pngW.writeRow(byteArrayLine(imgI, pBytes, (byte) 0xff), rowIndex.getAndIncrement());
+            linesWritten++;
+        }
+
+        return linesWritten;
+    }
+
+    private void whiteLines(@NotNull ImageInfo imgI, @NotNull PngWriter pngW, int nLines, @NotNull AtomicInteger rowIndex) {
+        for (int i = 0; i < nLines; i++) pngW.writeRow(whiteLine(imgI), rowIndex.getAndIncrement());
+    }
+
+    public static String byteToHexString(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) sb.append(String.format("%02x", b));
+        return sb.toString();
+    }
+
     public void saveSync() throws IOException {
         if (this.saveInProgress || this.restoreInProgress) throw new IOException("Already running save or restore");
         this.saveInProgress = true;
@@ -249,18 +289,18 @@ public class FileToPNG {
         long fileSizeSqrt = (long) Math.sqrt((double) fileSize / 3) + 1000;
 
         List<File> outputFiles = new ArrayList<>();
-        List<MessageDigest> messageDigests = new ArrayList<>();
-        MessageDigest digestAll = this.getMdInstance();
+        List<Digest> messageDigests = new ArrayList<>();
+        Digest digestAll = this.getMdInstance();
 
         int paddingTop = 96;
-        int paddingBottom = 32;
+        int paddingBottom = 64;
 
         long remainingBytes = this.fileSize;
         int partNo = 0;
         while (remainingBytes > 0) {
             File partFile = new File(this.directory.getAbsolutePath() + "\\" + "part" + partNo + ".png");
             outputFiles.add(partFile);
-            MessageDigest digestPart = this.getMdInstance();
+            Digest digestPart = this.getMdInstance();
             messageDigests.add(digestPart);
             int edge = edgeSize(remainingBytes);
             remainingBytes -= maxContentBytes(edge);
@@ -268,8 +308,8 @@ public class FileToPNG {
             PngWriter pngW = new PngWriter(partFile, imgI, true);
 
             // Header: metadata, previous checksum or digest
-            int headerRow = 0;
-            pngW.writeRow(utf8TextLine(imgI, "de.justusd.filetopng\0"), headerRow++); // header[0] // magic bytes
+            AtomicInteger headerRow = new AtomicInteger(0);
+            pngW.writeRow(utf8TextLine(imgI, "de.justusd.filetopng\0"), headerRow.getAndIncrement()); // header[0] // magic bytes
             pngW.writeRow(utf8TextLine(imgI,
                     "version=1;",
                     "part=" + partNo + ";",
@@ -282,22 +322,26 @@ public class FileToPNG {
                     "previousDigestIndex=2;",
                     "fileNameIndex=3;",
                     "\0"
-            ), headerRow++); // header[1] // header data
+            ), headerRow.getAndIncrement()); // header[1] // header data
 
-            MessageDigest previousDigest = null;
+            Digest previousDigest = null;
             int prevPartIndex = partNo - 1;
             if (!(prevPartIndex < 0 || prevPartIndex >= messageDigests.size())) {
                 previousDigest = messageDigests.get(prevPartIndex);
             }
             if (previousDigest != null) {
-                pngW.writeRow(byteArrayLine(imgI, previousDigest.digest()), headerRow++); // header[2] // digest of previous part
+                pngW.writeRow(byteArrayLine(imgI, previousDigest.digest()), headerRow.getAndIncrement()); // header[2] // digest of previous part
             } else {
-                pngW.writeRow(whiteLine(imgI), headerRow++); // header[2] // white if no digest
+                pngW.writeRow(whiteLine(imgI), headerRow.getAndIncrement()); // header[2] // white if no digest
             }
 
-            pngW.writeRow(utf8TextLine(imgI, file.getName() + "\0"), headerRow++); // header[3] // fileName, nullbyte terminated
+            pngW.writeRow(utf8TextLine(imgI, file.getName() + "\0"), headerRow.getAndIncrement()); // header[3] // fileName, nullbyte terminated
+            writeText(imgI, pngW, "PNG written with: de.justusd.filetopng", headerRow);
+            writeText(imgI, pngW, "Filename: " + file.getName(), headerRow);
+            writeText(imgI, pngW, "part: " + partNo + "; fileSize: " + fileSize + " bytes; contentLength: " + contentLengthForPart(fileSize, partNo), headerRow);
+            writeText(imgI, pngW, "", headerRow);
 
-            for (int row = headerRow; row < paddingTop; row++) { // fill up to line paddingTop
+            for (int row = headerRow.get(); row < paddingTop; row++) { // fill up to line paddingTop
                 ImageLineByte imgL = new ImageLineByte(imgI);
                 byte[] bytes = imgL.getScanline();
                 Arrays.fill(bytes, (byte) 0xff);
@@ -318,17 +362,22 @@ public class FileToPNG {
             }
 
             // Footer: checksum or digest
-            int rowFooter = edge + paddingTop;
-            pngW.writeRow(whiteLine(imgI), rowFooter++); // footer[0]
-            for (int row = rowFooter; row < paddingTop + edge + paddingBottom; row++) {
+            AtomicInteger rowFooter = new AtomicInteger(edge + paddingTop);
+            pngW.writeRow(whiteLine(imgI), rowFooter.getAndIncrement()); // footer[0]
+            pngW.writeRow(byteArrayLine(imgI, digestPart.digest(), (byte) 0xff), rowFooter.getAndIncrement()); // footer[1] // digest of the part
+            pngW.writeRow(byteArrayLine(imgI, digestAll.digest(), (byte) 0xff), rowFooter.getAndIncrement()); // footer[2] // overall digest
+            whiteLines(imgI, pngW, 5, rowFooter);
+            writeText(imgI, pngW, "SHA-256 of bytes in this part: " + byteToHexString(digestPart.digest()), rowFooter);
+            writeText(imgI, pngW, "SHA-256 of all bytes written:  " + byteToHexString(digestAll.digest()), rowFooter);
+            for (int row = rowFooter.get(); row < paddingTop + edge + paddingBottom; row++) {
                 ImageLineByte imgL = new ImageLineByte(imgI);
                 byte[] bytes = imgL.getScanline();
                 Arrays.fill(bytes, (byte) 0xff);
                 pngW.writeRow(imgL, row);
             }
-
             partNo++;
             pngW.close();
+            pngW.end();
 
         }
 
@@ -353,6 +402,7 @@ public class FileToPNG {
     public void restore() throws IOException {
         if (this.saveInProgress || this.restoreInProgress) throw new IOException("Already running save or restore");
         this.restoreInProgress = true;
+
     }
 
 }

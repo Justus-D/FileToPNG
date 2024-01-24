@@ -23,7 +23,7 @@ public class Main {
 
     private static void showFallbackSwingDialog() {
         // Fallback Swing dialog implementation
-        JOptionPane.showMessageDialog(null, "JavaFX is not available.\nPlease download a JDK/JRE distribution which includes JavaFX. For example the OpenJDK build from Azul Zulu (with JavaFX).");
+        JOptionPane.showMessageDialog(null, "JavaFX is not available.\nPlease download a JDK/JRE distribution which includes JavaFX.\nFor example the OpenJDK build from Azul \"Zulu\" (choose JDK FX).");
     }
 
 }
