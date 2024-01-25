@@ -41,3 +41,4 @@ build/
 
 # A folder to move things to that git should ignore
 /ignore
+dependency-reduced-pom.xml
