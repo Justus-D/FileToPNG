@@ -35,6 +35,9 @@ public class FileToPNG {
      * @param directory Directory for the PNGs (must be a directory)
      */
     public FileToPNG(@NotNull File file, @NotNull File directory) throws IOException {
+        if(!file.exists() && !file.createNewFile()) {
+            throw new IOException("New File could not be created!");
+        }
         if (!file.isFile()) {
             throw new IOException("The 'File file' argument is not a file!");
         }
@@ -258,7 +261,7 @@ public class FileToPNG {
             rows.add(new ArrayList<>(8 * 12));
         }
 
-        for (char c : text.toCharArray()) {
+        for (char c : (" " + text).toCharArray()) {
             boolean[][] pixels = font.getGlyph(c).getPixelMatrix();
             int currentRow = 0;
             for (boolean[] row : pixels) {
@@ -353,7 +356,7 @@ public class FileToPNG {
             }
 
             pngW.writeRow(utf8TextLine(imgI, file.getName() + "\0"), headerRow.getAndIncrement()); // header[3] // fileName, nullbyte terminated
-            writeText(imgI, pngW, "PNG written with: de.justusd.filetopng", headerRow);
+            writeText(imgI, pngW, "PNG generated with: de.justusd.filetopng", headerRow);
             writeText(imgI, pngW, "Filename: " + file.getName(), headerRow);
             writeText(imgI, pngW, "part: " + partNo + "; fileSize: " + fileSize + " bytes; contentLength: " + contentLengthForPart(fileSize, partNo), headerRow);
             writeText(imgI, pngW, "", headerRow);
@@ -397,20 +400,7 @@ public class FileToPNG {
 
         }
 
-//        File outputFile = new File(this.directory.getAbsolutePath() + "\\" + "part1.png");
-//        ImageInfo imgI = new ImageInfo(128, 128, 8, false);
-//        PngWriter pngW = new PngWriter(outputFile, imgI, true);
-//        ImageLineInt imgL = new ImageLineInt(imgI);
-//        int[] line = imgL.getScanline();
-//        for (int i = 0; i < 128; i++) {
-//            line[(i*3)] = i*2;   // R
-//            line[(i*3)+1] = i*2; // G
-//            line[(i*3)+2] = i*2; // B
-//        }
-//        for (int i = 0; i < 128; i++) {
-//            pngW.writeRow(imgL, i);
-//        }
-
+        // cleanup
         inputStream.close();
         this.sendFinished();
     }
@@ -464,6 +454,7 @@ public class FileToPNG {
 
         // cleanup
         outputStream.close();
+        this.sendFinished();
     }
 
 }

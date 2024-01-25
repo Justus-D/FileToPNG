@@ -2,7 +2,6 @@ package de.justusd.filetopng.controllers;
 
 import de.justusd.filetopng.service.FileToPNG;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -16,7 +15,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class MainController {
 
@@ -31,9 +29,45 @@ public class MainController {
     public Label saveStatus;
     public ProgressBar saveProgressBar;
     public ProgressIndicator saveProgressIndicator;
+    public Tab tabFileToPNG;
+    public Tab tabPNGToFile;
+    public Button resetSaveButton;
+    public Button saveDebug;
+    public Button chooseInputDirectoryButton;
+    public Button chooseOutputFileButton;
+    public Label selectedInputDirectoryLabel;
+    public Label selectedOutputFileLabel;
+    public Button restoreButton;
+    public Button resetRestoreButton;
+    public Button restoreDebugButton;
+    public Label restoreStatus;
+    public ProgressBar restoreProgressBar;
     private File inputFile;
     private File outputDirectory;
-    private FileToPNG fileToPNG;
+    private File inputDirectory;
+    private File outputFile;
+    private FileToPNG fileToPNGSave;
+    private FileToPNG fileToPNGRestore;
+
+    public void setInputFile(File inputFile) {
+        this.inputFile = inputFile;
+        this.selectedFileLabel.setText(inputFile == null ? "No file selected" : inputFile.getName());
+    }
+
+    public void setOutputDirectory(File outputDirectory) {
+        this.outputDirectory = outputDirectory;
+        this.selectedOutputDirectoryLabel.setText(outputDirectory == null ? "No output directory selected" : outputDirectory.getAbsolutePath());
+    }
+
+    public void setInputDirectory(File inputDirectory) {
+        this.inputDirectory = inputDirectory;
+        this.selectedInputDirectoryLabel.setText(inputDirectory == null ? "No directory selected" : inputDirectory.getAbsolutePath());
+    }
+
+    public void setOutputFile(File outputFile) {
+        this.outputFile = outputFile;
+        this.selectedOutputFileLabel.setText(outputFile == null ? "No file selected" : outputFile.getName());
+    }
 
     @FXML
     public void initialize() {
@@ -48,8 +82,7 @@ public class MainController {
             Stage stage = new Stage();
             File inputFileUpdate = fileChooser.showOpenDialog(stage);
             if (inputFileUpdate != null) {
-                this.inputFile = inputFileUpdate;
-                this.selectedFileLabel.setText(this.inputFile.getName());
+                this.setInputFile(inputFileUpdate);
             }
             this.updateSaveButton();
         });
@@ -62,80 +95,169 @@ public class MainController {
             Stage stage = new Stage();
             File outputDirectoryUpdate = directoryChooser.showDialog(stage);
             if (outputDirectoryUpdate != null) {
-                this.outputDirectory = outputDirectoryUpdate;
-                this.selectedOutputDirectoryLabel.setText(this.outputDirectory.getAbsolutePath());
+                this.setOutputDirectory(outputDirectoryUpdate);
             }
             this.updateSaveButton();
         });
     }
+
     public void updateSaveButton() {
         this.saveButton.setDisable(this.inputFile == null || this.outputDirectory == null);
     }
 
-//    public void handleSaveOld(ActionEvent event) {
-//        Task<Void> task = new Task<>() {
-//            @Override
-//            protected Void call() throws Exception {
-//                long bytesTotal = MainController.this.inputFile.length();
-//                AtomicLong bytesProcessed = FileToPNG.saveAsyncWithProgress(MainController.this.inputFile, MainController.this.outputDirectory);
-//                while (bytesProcessed.get() < bytesTotal) {
-//                    updateProgress(bytesProcessed.get(), bytesTotal);
-//                    // MainController.this.saveStatus.setText("" + bytesProcessed + " bytes / " + bytesTotal + " bytes processed");
-//                    Thread.sleep(50);
-//                }
-//                return null;
-//            }
-//        };
-//        this.saveProgressBar.setVisible(true);
-//        this.saveProgressBar.progressProperty().bind(task.progressProperty());
-//        task.setOnSucceeded(event1 -> {
-//            this.saveStatus.setText("Done.");
-//            this.saveProgressBar.setVisible(false);
-//        });
-//        Thread thread = new Thread(task);
-//        thread.setDaemon(true);
-//        thread.start();
-//    }
-
     public void handleSave(ActionEvent actionEvent) {
-        if (this.inputFile == null || this.outputDirectory == null || this.fileToPNG != null) return;
+        if (this.inputFile == null || this.outputDirectory == null || this.fileToPNGSave != null) return;
         this.chooseFileButton.setDisable(true);
         this.chooseOutputFolderButton.setDisable(true);
+        this.saveButton.setDisable(true);
+        this.resetSaveButton.setDisable(true);
+        this.tabPNGToFile.setDisable(true);
         try {
-            this.fileToPNG = new FileToPNG(inputFile, outputDirectory);
-            FileToPNG f2p = this.fileToPNG;
-            PropertyChangeListener changeListener = new PropertyChangeListener() {
-                @Override
-                public void propertyChange(PropertyChangeEvent changeEvent) {
-                    Platform.runLater(() -> {
-                        String propertyName = changeEvent.getPropertyName();
-                        if (propertyName.equals("bytesProcessed")) {
-                            changeEvent.getNewValue();
-                            float progress = f2p.progressPercentage();
-                            MainController.this.saveProgressBar.setProgress(progress);
-                            MainController.this.saveStatus.setText("Bytes processed: " + f2p.getBytesProcessed() + " / " + f2p.getBytesTotal() + " / " + ((int) (f2p.progressPercentage() * 100)) + " %");
-                        }
-                        else if (propertyName.equals("finished")) {
-                            if (changeEvent.getNewValue().equals(true)) {
-                                MainController.this.saveStatus.setText("Done.");
-                                try {
-                                    f2p.joinThread();
-                                    MainController.this.chooseFileButton.setDisable(false);
-                                    MainController.this.chooseOutputFolderButton.setDisable(false);
-                                    MainController.this.fileToPNG = null;
-                                } catch (InterruptedException ignore) {}
-                            }
-                        }
-                    });
+            this.fileToPNGSave = new FileToPNG(inputFile, outputDirectory);
+            FileToPNG f2p = this.fileToPNGSave;
+
+            // Reflect status in GUI
+            PropertyChangeListener changeListener = changeEvent -> Platform.runLater(() -> {
+                String propertyName = changeEvent.getPropertyName();
+                if (propertyName.equals("bytesProcessed")) {
+                    float progress = f2p.progressPercentage();
+                    MainController.this.saveProgressBar.setProgress(progress);
+                    MainController.this.saveStatus.setText("Bytes processed: " + f2p.getBytesProcessed() + " / " + f2p.getBytesTotal() + " / " + ((int) (f2p.progressPercentage() * 100)) + " %");
                 }
-            };
-            this.fileToPNG.addPropertyChangeListener(changeListener);
+                else if (propertyName.equals("finished")) {
+                    if (changeEvent.getNewValue().equals(true)) {
+                        MainController.this.saveStatus.setText("Done.");
+                        MainController.this.saveProgressBar.setVisible(false);
+                        MainController.this.saveProgressBar.setProgress(0);
+                        try {
+                            f2p.joinThread();
+                            MainController.this.chooseFileButton.setDisable(false);
+                            MainController.this.chooseOutputFolderButton.setDisable(false);
+                            MainController.this.resetSaveButton.setDisable(false);
+                            MainController.this.tabPNGToFile.setDisable(false);
+                            MainController.this.saveButton.setDisable(false);
+                            MainController.this.fileToPNGSave = null;
+                        } catch (InterruptedException ignore) {}
+                    }
+                }
+            });
+            f2p.addPropertyChangeListener(changeListener);
             this.saveProgressBar.setVisible(true);
-            this.fileToPNG.save();
+            f2p.save();
         } catch (IOException e) {
             this.saveStatus.setText("An error occurred.");
             e.printStackTrace();
         }
+    }
+
+    public void handleSaveReset(ActionEvent actionEvent) {
+        this.setInputFile(null);
+        this.setOutputDirectory(null);
+        this.fileToPNGSave = null;
+        this.saveProgressBar.setVisible(false);
+        this.saveProgressBar.setProgress(0);
+        this.saveStatus.setText("");
+        this.updateSaveButton();
+    }
+
+    public void handleUseDebugSave(ActionEvent actionEvent) {
+        if (this.fileToPNGSave != null) return;
+
+        File inputFile = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\agpl-3.0.md");
+        File outputDirectory = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\out\\");
+        this.setInputFile(inputFile);
+        this.setOutputDirectory(outputDirectory);
+        this.updateSaveButton();
+    }
+
+    public void updateRestoreButton() {
+        this.restoreButton.setDisable(this.inputDirectory == null || this.outputFile == null);
+    }
+
+    public void handleChooseInputDirectory(ActionEvent actionEvent) {
+        Platform.runLater(() -> {
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            directoryChooser.setTitle("Directory containing the PNG(s)");
+            Stage stage = new Stage();
+            File inputDirectoryUpdate = directoryChooser.showDialog(stage);
+            if (inputDirectoryUpdate != null) {
+                this.setInputDirectory(inputDirectoryUpdate);
+            }
+            this.updateRestoreButton();
+        });
+    }
+
+    public void handleChooseOutputFile(ActionEvent actionEvent) {
+        Platform.runLater(() -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Output file");
+            Stage stage = new Stage();
+            File outputFileUpdate = fileChooser.showOpenDialog(stage);
+            if (outputFileUpdate != null) {
+                this.setOutputFile(outputFileUpdate);
+            }
+            this.updateRestoreButton();
+        });
+    }
+
+    public void handleRestore(ActionEvent actionEvent) {
+        if (this.inputDirectory == null || this.outputFile == null || this.fileToPNGRestore != null) return;
+        this.chooseInputDirectoryButton.setDisable(true);
+        this.chooseOutputFileButton.setDisable(true);
+        this.restoreButton.setDisable(true);
+        this.resetRestoreButton.setDisable(true);
+        this.tabFileToPNG.setDisable(true);
+        try {
+            this.fileToPNGRestore = new FileToPNG(outputFile, inputDirectory);
+            FileToPNG f2p = this.fileToPNGRestore;
+
+            // Reflect status in GUI
+            PropertyChangeListener changeListener = changeEvent -> Platform.runLater(() -> {
+                if (changeEvent.getPropertyName().equals("finished")) {
+                    if (changeEvent.getNewValue().equals(true)) {
+                        MainController.this.restoreStatus.setText("Done.");
+                        MainController.this.restoreProgressBar.setVisible(false);
+                        MainController.this.restoreProgressBar.setProgress(0);
+                        try {
+                            f2p.joinThread();
+                            MainController.this.chooseInputDirectoryButton.setDisable(false);
+                            MainController.this.chooseOutputFileButton.setDisable(false);
+                            MainController.this.resetRestoreButton.setDisable(false);
+                            MainController.this.tabFileToPNG.setDisable(false);
+                            MainController.this.restoreButton.setDisable(false);
+                            MainController.this.fileToPNGRestore = null;
+                        } catch (InterruptedException ignore) {}
+                    }
+                }
+            });
+            f2p.addPropertyChangeListener(changeListener);
+            this.restoreProgressBar.setVisible(true);
+            f2p.save();
+
+        } catch (IOException e) {
+            this.restoreStatus.setText("An error occurred.");
+            e.printStackTrace();
+        }
+    }
+
+    public void handleRestoreReset(ActionEvent actionEvent) {
+        this.setInputDirectory(null);
+        this.setOutputFile(null);
+        this.fileToPNGRestore = null;
+        this.restoreProgressBar.setVisible(false);
+        this.restoreProgressBar.setProgress(0);
+        this.restoreStatus.setText("");
+        this.updateRestoreButton();
+    }
+
+    public void handleUseDebugRestore(ActionEvent actionEvent) {
+        if (this.fileToPNGRestore != null) return;
+
+        File inputDirectory = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\out\\");
+        File outputFile = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\restore.md");
+        this.setInputDirectory(inputDirectory);
+        this.setOutputFile(outputFile);
+        this.updateRestoreButton();
     }
 
 }
