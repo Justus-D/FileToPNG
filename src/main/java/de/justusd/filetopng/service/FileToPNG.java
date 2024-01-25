@@ -5,8 +5,6 @@ import de.justusd.bdfutil.BdfFont;
 import de.justusd.bdfutil.Font;
 import org.jetbrains.annotations.NotNull;
 
-import javax.imageio.ImageReader;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
@@ -17,14 +15,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class FileToPNG {
 
-    private File file;
-    private File directory;
+    private final File file;
+    private final File directory;
     private boolean saveInProgress = false;
     private boolean restoreInProgress = false;
     private AtomicLong bytesProcessed;
     private long fileSize;
+    private long fileLastModified;
+    private UUID fileUUID; // used for identifying the parts of a file
     private List<PropertyChangeListener> propertyChangeListeners = new ArrayList<>();
-    IOException occuredException = null;
+    IOException occurredException = null;
     private Thread thread;
 
     /**
@@ -160,7 +160,7 @@ public class FileToPNG {
      * @throws IOException The IOException that may have occurred in a thread
      */
     public void throwException() throws IOException {
-        if (this.occuredException != null) throw this.occuredException;
+        if (this.occurredException != null) throw this.occurredException;
     }
 
     public float progressPercentage() {
@@ -184,7 +184,7 @@ public class FileToPNG {
             try {
                 FileToPNG.this.saveSync();
             } catch (IOException e) {
-                FileToPNG.this.occuredException = e;
+                FileToPNG.this.occurredException = e;
             }
         };
         if (this.thread != null) return;
@@ -200,7 +200,7 @@ public class FileToPNG {
             try {
                 FileToPNG.this.restoreSync();
             } catch (IOException e) {
-                FileToPNG.this.occuredException = e;
+                FileToPNG.this.occurredException = e;
             }
         };
         if (this.thread != null) return;
@@ -297,6 +297,8 @@ public class FileToPNG {
         this.saveInProgress = true;
         FileInputStream inputStream = new FileInputStream(file);
         this.fileSize = file.length(); // in Bytes
+        this.fileLastModified = this.file.lastModified();
+        this.fileUUID = UUID.randomUUID();
         this.bytesProcessed = new AtomicLong(0L);
 
         // int edge = edgeSize(fileSize);
@@ -335,6 +337,7 @@ public class FileToPNG {
                     "digestLength=32;", // SHA-256: 256 bits = 32 bytes
                     "previousDigestIndex=2;",
                     "fileNameIndex=3;",
+                    "UUID=" + this.fileUUID.toString() + ";",
                     "\0"
             ), headerRow.getAndIncrement()); // header[1] // header data
 
@@ -391,7 +394,6 @@ public class FileToPNG {
             }
             partNo++;
             pngW.close();
-            pngW.end();
 
         }
 
@@ -432,7 +434,7 @@ public class FileToPNG {
         FileOutputStream outputStream = new FileOutputStream(this.file);
 
         // parse header data
-        for (PngReaderByte pngR : pngReaders) {
+        for (PngReaderByte pngR : pngReaders) { // magic bytes
             ImageLineByte imgL = pngR.readRowByte();
             byte[] bytes = imgL.getScanline(); // header[0]
             byte[] magicBytes = "de.justusd.filetopng".getBytes(StandardCharsets.UTF_8);
@@ -441,7 +443,7 @@ public class FileToPNG {
             }
         }
 
-        for (int i = 0; i < pngReaders.length; i++) {
+        for (int i = 0; i < pngReaders.length; i++) { // config pixels
             PngReaderByte pngR = pngReaders[i];
             ImageLineByte imgL = pngR.readRowByte();
             byte[] bytes = imgL.getScanline(); // header[1]
@@ -458,9 +460,9 @@ public class FileToPNG {
                 }
             }
             configs[i] = config;
-
         }
 
+        // cleanup
         outputStream.close();
     }
 
