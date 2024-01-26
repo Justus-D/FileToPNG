@@ -74,7 +74,10 @@ public class MainController {
     @FXML
     public void initialize() {
         HBox.setHgrow(tabPane, Priority.ALWAYS);
-//        chooseFileButton.setOnMouseClicked();
+        if (System.getenv("DEBUG") != null) {
+            this.saveDebug.setVisible(true);
+            this.restoreDebugButton.setVisible(true);
+        }
     }
 
     public void handleChooseInputFile(ActionEvent event) {
@@ -165,8 +168,8 @@ public class MainController {
     public void handleUseDebugSave(ActionEvent actionEvent) {
         if (this.fileToPNGSave != null) return;
 
-        File inputFile = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\agpl-3.0.md");
-        File outputDirectory = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\out\\");
+        File inputFile = new File(System.getenv("DEBUG_FILE"));
+        File outputDirectory = new File(System.getenv("DEBUG_DIRECTORY"));
         this.setInputFile(inputFile);
         this.setOutputDirectory(outputDirectory);
         this.updateSaveButton();
@@ -274,8 +277,8 @@ public class MainController {
     public void handleUseDebugRestore(ActionEvent actionEvent) {
         if (this.fileToPNGRestore != null) return;
 
-        File inputDirectory = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\out\\");
-        File outputFile = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\restore.md");
+        File inputDirectory = new File(System.getenv("DEBUG_DIRECTORY"));
+        File outputFile = new File(System.getenv("DEBUG_OUTPUT_FILE"));
         this.setInputDirectory(inputDirectory);
         this.setOutputFile(outputFile);
         this.updateRestoreButton();
@@ -293,7 +296,4 @@ public class MainController {
         });
     }
 
-    public void handleDetect(ActionEvent actionEvent) {
-        this.detectFileName();
-    }
 }

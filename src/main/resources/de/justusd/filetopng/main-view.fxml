@@ -34,7 +34,7 @@
                             <HBox spacing="8">
                                 <Button fx:id="saveButton" onAction="#handleSave" disable="true">Save</Button>
                                 <Button fx:id="resetSaveButton" onAction="#handleSaveReset">Reset</Button>
-                                <!--<Button fx:id="saveDebug" onAction="#handleUseDebugSave">Use debug values</Button>-->
+                                <Button fx:id="saveDebug" onAction="#handleUseDebugSave" visible="false">Use debug values</Button>
                             </HBox>
                             <Label> </Label>
                             <Label fx:id="saveStatus"> </Label>
@@ -55,7 +55,6 @@
                         <Label>Choose the output file (this will be overwritten if it exists!)</Label>
                         <HBox spacing="4">
                             <Button fx:id="chooseOutputFileButton" onAction="#handleChooseOutputFile">Choose File</Button>
-                            <!--<Button fx:id="detectFileNameButton" onAction="#handleDetect">Detect</Button>-->
                             <Label fx:id="selectedOutputFileLabel">No file selected</Label>
                         </HBox>
                         <Label> </Label>
@@ -63,7 +62,7 @@
                             <HBox spacing="8">
                                 <Button fx:id="restoreButton" onAction="#handleRestore" disable="true">Restore</Button>
                                 <Button fx:id="resetRestoreButton" onAction="#handleRestoreReset">Reset</Button>
-                                <!--<Button fx:id="restoreDebugButton" onAction="#handleUseDebugRestore">Use debug values</Button>-->
+                                <Button fx:id="restoreDebugButton" onAction="#handleUseDebugRestore" visible="false">Use debug values</Button>
                             </HBox>
                             <Label> </Label>
                             <Label fx:id="restoreStatus"> </Label>

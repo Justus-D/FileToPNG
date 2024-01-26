@@ -81,8 +81,8 @@ public class FileToPNG {
     }
 
     public static void main(String[] args) {
-        File inputFile = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\agpl-3.0.md");
-        File outputDirectory = new File("C:\\Users\\Justus\\Documents\\aFileToPNG\\out\\");
+        File inputFile = new File(System.getenv("DEBUG_FILE"));
+        File outputDirectory = new File(System.getenv("DEBUG_DIRECTORY"));
 
         try {
             FileToPNG fileToPNG = new FileToPNG(inputFile, outputDirectory);
