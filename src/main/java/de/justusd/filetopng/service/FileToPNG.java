@@ -9,6 +9,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -312,6 +314,9 @@ public class FileToPNG {
         this.fileLastModified = this.file.lastModified();
         this.fileUUID = UUID.randomUUID();
         this.bytesProcessed.set(0L);
+        LocalDateTime currentDate = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+        String partPrefix = currentDate.format(formatter) + "_part";
 
         // int edge = edgeSize(fileSize);
         long fileSizeSqrt = (long) Math.sqrt((double) fileSize / 3) + 1000;
@@ -326,7 +331,8 @@ public class FileToPNG {
         long remainingBytes = this.fileSize;
         int partNo = 0;
         while (remainingBytes > 0) {
-            File partFile = new File(this.directory.getAbsolutePath() + "\\" + "part" + partNo + ".png");
+
+            File partFile = new File(this.directory.getAbsolutePath() + "\\" + partPrefix + partNo + ".png");
             outputFiles.add(partFile);
             Digest digestPart = this.getMdInstance();
             messageDigests.add(digestPart);
