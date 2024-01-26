@@ -24,21 +24,4 @@ class FileToPNGTest {
         assertEquals(1_000L, FileToPNG.contentLengthForPart(1_200_000_000L * 2L + 1_000L, 2));
     }
 
-    @Test
-    void messageDigest() throws NoSuchAlgorithmException, CloneNotSupportedException {
-        MessageDigest md1 = MessageDigest.getInstance("SHA-256");
-        MessageDigest md2 = MessageDigest.getInstance("SHA-256");
-        byte[] bytes = new byte[255];
-        for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = (byte) i;
-        }
-        md1.update(bytes);
-        System.out.println(FileToPNG.byteToHexString(md1.digest()));
-        md2.update(bytes);
-        MessageDigest md2Clone = (MessageDigest) md2.clone();
-        System.out.println(FileToPNG.byteToHexString(md2Clone.digest()));
-        md2.update(bytes);
-        System.out.println(FileToPNG.byteToHexString(md2.digest()));
-    }
-
 }
