@@ -320,6 +320,8 @@ public class FileToPNG {
         String partPrefix = currentDate.format(formatter) + "_part";
 
         List<File> outputFiles = new ArrayList<>();
+        List<PngWriter> writers = new ArrayList<>();
+        List<FileOutputStream> outputStreams = new ArrayList<>();
         List<Digest> messageDigests = new ArrayList<>();
         Digest digestAll = this.getMdInstance();
 
@@ -337,7 +339,10 @@ public class FileToPNG {
             int edge = edgeSize(remainingBytes);
             remainingBytes -= maxContentBytes(edge);
             ImageInfo imgI = new ImageInfo(edge, edge + paddingTop + paddingBottom, 8, false);
-            PngWriter pngW = new PngWriter(partFile, imgI, true);
+            FileOutputStream outputStream = new FileOutputStream(partFile);
+            outputStreams.add(outputStream);
+            PngWriter pngW = new PngWriter(outputStream, imgI);
+            writers.add(pngW);
 
             // Header: metadata, previous checksum or digest
             AtomicInteger headerRow = new AtomicInteger(0);
@@ -410,12 +415,19 @@ public class FileToPNG {
                 pngW.writeRow(imgL, row);
             }
             partNo++;
+            outputStream.flush();
             pngW.close();
 
         }
 
         // cleanup
         inputStream.close();
+        for (FileOutputStream stream : outputStreams) {
+            try {
+                stream.flush();
+                stream.close();
+            } catch (IOException ignored) {}
+        }
         this.sendFinished();
     }
 
