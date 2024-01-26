@@ -41,7 +41,7 @@ jobs:
         --recursive \
         --exclude "target/dependencies/*" \
         --exclude "*" \
-        --include "*.jar" \
+        --include "FileToPNG*.jar" \
         --quiet \
         --endpoint-url https://${CF_ACCOUNT}.eu.r2.cloudflarestorage.com
 
