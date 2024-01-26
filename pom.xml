@@ -6,7 +6,7 @@
 
     <groupId>de.justusd.filetopng</groupId>
     <artifactId>FileToPNG</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>FileToPNG</name>
 
     <developers>
@@ -154,7 +154,7 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <finalName>${project.artifactId}-v${project.version}-release</finalName>
+                    <finalName>${project.artifactId}-${project.version}-release</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
