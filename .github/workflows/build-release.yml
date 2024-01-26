@@ -37,7 +37,7 @@ jobs:
         CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         RELEASE: ${{ github.ref_name }}
       run: |
-        aws s3 cp ./target/*.jar s3://$AWS_S3_BUCKET_NAME/FileToPNG/releases/tag/${RELEASE}/ \
+        aws s3 cp ./target/*.jar s3://${AWS_S3_BUCKET_NAME}/FileToPNG/releases/tag/${RELEASE}/ \
         --recursive \
         --quiet \
         --endpoint-url https://${CF_ACCOUNT}.eu.r2.cloudflarestorage.com
