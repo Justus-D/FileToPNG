@@ -1,38 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.HBox?>
-
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.skin.SplitPaneSkin.ContentDivider?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.ProgressIndicator?>
-<AnchorPane prefHeight="400.0" prefWidth="600.0" minHeight="400.0" minWidth="600.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="de.justusd.filetopng.controllers.MainController">
-    <HBox fx:id="hBox" prefHeight="400.0" prefWidth="600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-        <TabPane fx:id="tabPane" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE" HBox.hgrow="ALWAYS">
-            <Tab text="File to PNG" fx:id="tabFileToPNG">
-                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="600.0">
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.web.WebHistory?>
+<?import javafx.scene.web.WebView?>
+<AnchorPane minHeight="400.0" minWidth="600.0" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.justusd.filetopng.controllers.MainController">
+    <VBox fx:id="vBox" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <!--<MenuBar>
+            <menus>
+                <Menu mnemonicParsing="false" text="File">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Close" />
+                    </items>
+                </Menu>
+                <Menu mnemonicParsing="false" text="Edit">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="Delete" />
+                    </items>
+                </Menu>
+                <Menu mnemonicParsing="false" text="Help">
+                    <items>
+                        <MenuItem mnemonicParsing="false" text="About" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>-->
+        <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE" HBox.hgrow="ALWAYS">
+            <Tab fx:id="tabFileToPNG" text="File to PNG">
+                <AnchorPane minHeight="0.0" minWidth="0.0">
                     <VBox style="-fx-spacing: 2; -fx-padding: 20">
                         <Label>Choose an input file</Label>
-                        <HBox style="-fx-spacing: 4">
+                        <HBox spacing="8" alignment="BASELINE_LEFT">
                             <Button fx:id="chooseFileButton" onAction="#handleChooseInputFile">Choose File</Button>
                             <Label fx:id="selectedFileLabel">No file selected</Label>
                         </HBox>
                         <Label> </Label>
                         <Label>Choose an output directory</Label>
-                        <HBox style="-fx-spacing: 4">
+                        <HBox spacing="8" alignment="BASELINE_LEFT">
                             <Button fx:id="chooseOutputFolderButton" onAction="#handleChooseOutputFolder">Choose Folder</Button>
                             <Label fx:id="selectedOutputDirectoryLabel">No output directory selected</Label>
                         </HBox>
                         <Label> </Label>
-                        <VBox style="-fx-spacing: 4">
+                        <VBox style="-fx-spacing: 4" alignment="BASELINE_LEFT">
                             <HBox spacing="8">
-                                <Button fx:id="saveButton" onAction="#handleSave" disable="true">Save</Button>
+                                <Button fx:id="saveButton" disable="true" onAction="#handleSave">Save</Button>
                                 <Button fx:id="resetSaveButton" onAction="#handleSaveReset">Reset</Button>
                                 <Button fx:id="saveDebug" onAction="#handleUseDebugSave" visible="false">Use debug values</Button>
                             </HBox>
@@ -43,24 +54,24 @@
                     </VBox>
                 </AnchorPane>
             </Tab>
-            <Tab text="PNG to File" fx:id="tabPNGToFile">
-                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="400.0" prefWidth="600.0">
+            <Tab fx:id="tabPNGToFile" text="PNG to File">
+                <AnchorPane minHeight="0.0" minWidth="0.0">
                     <VBox style="-fx-spacing: 2; -fx-padding: 20">
                         <Label>Choose the directory containing the PNG files</Label>
-                        <HBox spacing="4">
+                        <HBox spacing="8" alignment="BASELINE_LEFT">
                             <Button fx:id="chooseInputDirectoryButton" onAction="#handleChooseInputDirectory">Choose Folder</Button>
                             <Label fx:id="selectedInputDirectoryLabel">No directory selected</Label>
                         </HBox>
                         <Label> </Label>
-                        <Label>Choose the output file (this will be overwritten if it exists!)</Label>
-                        <HBox spacing="4">
+                        <Label>Choose the output file</Label>
+                        <HBox spacing="8" alignment="BASELINE_LEFT">
                             <Button fx:id="chooseOutputFileButton" onAction="#handleChooseOutputFile">Choose File</Button>
                             <Label fx:id="selectedOutputFileLabel">No file selected</Label>
                         </HBox>
                         <Label> </Label>
                         <VBox style="-fx-spacing: 4">
                             <HBox spacing="8">
-                                <Button fx:id="restoreButton" onAction="#handleRestore" disable="true">Restore</Button>
+                                <Button fx:id="restoreButton" disable="true" onAction="#handleRestore">Restore</Button>
                                 <Button fx:id="resetRestoreButton" onAction="#handleRestoreReset">Reset</Button>
                                 <Button fx:id="restoreDebugButton" onAction="#handleUseDebugRestore" visible="false">Use debug values</Button>
                             </HBox>
@@ -71,6 +82,11 @@
                     </VBox>
                 </AnchorPane>
             </Tab>
+            <Tab text="About">
+                <AnchorPane minHeight="0.0" minWidth="0.0">
+                    <WebView fx:id="webView" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                </AnchorPane>
+            </Tab>
         </TabPane>
-    </HBox>
+    </VBox>
 </AnchorPane>

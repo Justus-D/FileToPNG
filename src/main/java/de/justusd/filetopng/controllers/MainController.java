@@ -7,6 +7,9 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -14,11 +17,12 @@ import javafx.stage.Stage;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 public class MainController {
 
     public TabPane tabPane;
-    public HBox hBox;
+    public VBox vBox;
     public Button chooseFileButton;
     public Button choosePNGButton;
     public Button chooseOutputFolderButton;
@@ -42,6 +46,7 @@ public class MainController {
     public Label restoreStatus;
     public ProgressBar restoreProgressBar;
     public Button detectFileNameButton;
+    public WebView webView;
     private File inputFile;
     private File outputDirectory;
     private File inputDirectory;
@@ -49,6 +54,19 @@ public class MainController {
     private FileToPNG fileToPNGSave;
     private FileToPNG fileToPNGRestore;
     private String suggestedOutputName;
+
+    @FXML
+    public void initialize() {
+        HBox.setHgrow(tabPane, Priority.ALWAYS);
+        if (System.getenv("DEBUG") != null) {
+            this.saveDebug.setVisible(true);
+            this.restoreDebugButton.setVisible(true);
+        }
+        WebEngine webEngine = this.webView.getEngine();
+        webView.setContextMenuEnabled(false);
+        URL url = this.getClass().getResource("/de/justusd/filetopng/about.html");
+        webEngine.load(String.valueOf(url));
+    }
 
     public void setInputFile(File inputFile) {
         this.inputFile = inputFile;
@@ -68,15 +86,6 @@ public class MainController {
     public void setOutputFile(File outputFile) {
         this.outputFile = outputFile;
         this.selectedOutputFileLabel.setText(outputFile == null ? "No file selected" : outputFile.getName());
-    }
-
-    @FXML
-    public void initialize() {
-        HBox.setHgrow(tabPane, Priority.ALWAYS);
-        if (System.getenv("DEBUG") != null) {
-            this.saveDebug.setVisible(true);
-            this.restoreDebugButton.setVisible(true);
-        }
     }
 
     public void handleChooseInputFile(ActionEvent event) {

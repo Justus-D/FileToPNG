@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>About</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<h2>About</h2>
+<p style="margin-left: 1em">
+    <b>FileToPNG</b>: Save files in PNG images<br>
+    Copyright &copy; 2024, Justus Dietrich<br>
+    https://github.com/Justus-D/FileToPNG
+</p>
+<p>
+    This application can write the contents of a file into a PNG image.
+    It can also retrieve the written data later on. A hash is being
+    calculated while writing data to a PNG. This ensures that possible
+    corruption of the data can be detected when restoring the data from
+    one or more PNGs. There is no limit for the file size of a stored
+    file. Each generated PNG can hold up to 1 200 000 000 bytes. After
+    that, a new PNG is used to store further data. Each generated PNG
+    has a file name in the format
+    "<code>YYYY-MM-DD_hh-mm-ss_part&lt;index&gt;.png</code>".
+    If you want to recover the data stored in a generated PNG, you need
+    to select the folder in which the generated PNG files are stored.
+    If there is more than one PNG file which stores a file, the first
+    one will be selected for recovery.
+</p>
+
+<h3>Open-Source Libraries</h3>
+<p>
+    This application uses a couple of open-source libraries. Without them,
+    this application would not be able to work. Here are some of the most
+    important ones.
+</p>
+<ul>
+    <li>
+        <b>PNGJ</b>: PNG image IO Java library<br>
+        Copyright 2009-2012 Hernán J. González<br>
+        License: Apache-2.0<br>
+        https://hjg.com.ar/pngj/
+    </li>
+    <li>
+        <b>Spleen</b>: A monospaced bitmap font<br>
+        Copyright (c) 2018-2024, Frederic Cambus<br>
+        License: BSD-2-Clause<br>
+        https://github.com/fcambus/spleen
+    </li>
+</ul>
+
+</body>
+</html>
