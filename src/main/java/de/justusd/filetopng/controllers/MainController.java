@@ -42,12 +42,14 @@ public class MainController {
     public Button restoreDebugButton;
     public Label restoreStatus;
     public ProgressBar restoreProgressBar;
+    public Button detectFileNameButton;
     private File inputFile;
     private File outputDirectory;
     private File inputDirectory;
     private File outputFile;
     private FileToPNG fileToPNGSave;
     private FileToPNG fileToPNGRestore;
+    private String suggestedOutputName;
 
     public void setInputFile(File inputFile) {
         this.inputFile = inputFile;
@@ -184,15 +186,17 @@ public class MainController {
                 this.setInputDirectory(inputDirectoryUpdate);
             }
             this.updateRestoreButton();
+            this.detectFileName();
         });
     }
 
     public void handleChooseOutputFile(ActionEvent actionEvent) {
         Platform.runLater(() -> {
             FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Output file");
+            fileChooser.setTitle("Output file (also choose the extension");
+            fileChooser.setInitialFileName(this.suggestedOutputName != null ? this.suggestedOutputName : "restoredFile");
             Stage stage = new Stage();
-            File outputFileUpdate = fileChooser.showOpenDialog(stage);
+            File outputFileUpdate = fileChooser.showSaveDialog(stage);
             if (outputFileUpdate != null) {
                 this.setOutputFile(outputFileUpdate);
             }
@@ -213,31 +217,48 @@ public class MainController {
 
             // Reflect status in GUI
             PropertyChangeListener changeListener = changeEvent -> Platform.runLater(() -> {
-                if (changeEvent.getPropertyName().equals("finished")) {
-                    if (changeEvent.getNewValue().equals(true)) {
-                        MainController.this.restoreStatus.setText("Done.");
-                        MainController.this.restoreProgressBar.setVisible(false);
-                        MainController.this.restoreProgressBar.setProgress(0);
-                        try {
-                            f2p.joinThread();
-                            MainController.this.chooseInputDirectoryButton.setDisable(false);
-                            MainController.this.chooseOutputFileButton.setDisable(false);
-                            MainController.this.resetRestoreButton.setDisable(false);
-                            MainController.this.tabFileToPNG.setDisable(false);
-                            MainController.this.restoreButton.setDisable(false);
-                            MainController.this.fileToPNGRestore = null;
-                        } catch (InterruptedException ignore) {}
+                if (changeEvent.getPropertyName().equals("bytesProcessed")) {
+                    float progress = f2p.progressPercentage();
+                    MainController.this.restoreProgressBar.setProgress(progress);
+                    MainController.this.restoreStatus.setText("Bytes processed: " + f2p.getBytesProcessed() + " / " + f2p.getBytesTotal() + " / " + ((int) (f2p.progressPercentage() * 100)) + " %");
+                }
+                else if (changeEvent.getPropertyName().equals("gotError")) {
+                    try {
+                        f2p.throwException();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        this.resetRestore("Error: " + e.getMessage());
                     }
+                }
+                else if (changeEvent.getPropertyName().equals("finished")) {
+                    this.resetRestore("Done.");
                 }
             });
             f2p.addPropertyChangeListener(changeListener);
             this.restoreProgressBar.setVisible(true);
-            f2p.save();
+            f2p.restore();
 
         } catch (IOException e) {
-            this.restoreStatus.setText("An error occurred.");
+            this.restoreStatus.setText("Error: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public void resetRestore(String message) {
+        Platform.runLater(() -> {
+            MainController.this.restoreStatus.setText(message);
+            MainController.this.restoreProgressBar.setVisible(false);
+            MainController.this.restoreProgressBar.setProgress(0);
+            try {
+                if (this.fileToPNGRestore != null) this.fileToPNGRestore.joinThread();
+                MainController.this.chooseInputDirectoryButton.setDisable(false);
+                MainController.this.chooseOutputFileButton.setDisable(false);
+                MainController.this.resetRestoreButton.setDisable(false);
+                MainController.this.tabFileToPNG.setDisable(false);
+                MainController.this.restoreButton.setDisable(false);
+                MainController.this.fileToPNGRestore = null;
+            } catch (InterruptedException ignore) {}
+        });
     }
 
     public void handleRestoreReset(ActionEvent actionEvent) {
@@ -260,4 +281,19 @@ public class MainController {
         this.updateRestoreButton();
     }
 
+    public void detectFileName() {
+        Platform.runLater(() -> {
+            try {
+                if (this.inputDirectory != null) {
+                    this.suggestedOutputName = FileToPNG.detectFileName(this.inputDirectory);
+                }
+            } catch (IOException e) {
+                this.suggestedOutputName = null;
+            }
+        });
+    }
+
+    public void handleDetect(ActionEvent actionEvent) {
+        this.detectFileName();
+    }
 }

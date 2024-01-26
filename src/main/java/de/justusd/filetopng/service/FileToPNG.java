@@ -19,7 +19,7 @@ public class FileToPNG {
     private final File directory;
     private boolean saveInProgress = false;
     private boolean restoreInProgress = false;
-    private AtomicLong bytesProcessed;
+    private final AtomicLong bytesProcessed = new AtomicLong(0L);;
     private long fileSize;
     private long fileLastModified;
     private UUID fileUUID; // used for identifying the parts of a file
@@ -204,6 +204,15 @@ public class FileToPNG {
                 FileToPNG.this.restoreSync();
             } catch (IOException e) {
                 FileToPNG.this.occurredException = e;
+                PropertyChangeEvent event = new PropertyChangeEvent(
+                        this,
+                        "gotError",
+                        false,
+                        true
+                );
+                for (PropertyChangeListener listener : this.propertyChangeListeners) {
+                    listener.propertyChange(event);
+                }
             }
         };
         if (this.thread != null) return;
@@ -302,7 +311,7 @@ public class FileToPNG {
         this.fileSize = file.length(); // in Bytes
         this.fileLastModified = this.file.lastModified();
         this.fileUUID = UUID.randomUUID();
-        this.bytesProcessed = new AtomicLong(0L);
+        this.bytesProcessed.set(0L);
 
         // int edge = edgeSize(fileSize);
         long fileSizeSqrt = (long) Math.sqrt((double) fileSize / 3) + 1000;
@@ -332,14 +341,15 @@ public class FileToPNG {
             pngW.writeRow(utf8TextLine(imgI,
                     "version=1;",
                     "part=" + partNo + ";",
-                    "contentLength=" + ";",
+                    "fileSize=" + fileSize + ";",
+                    "contentLength=" + contentLengthForPart(fileSize, partNo) + ";",
                     "edge=" + edge + ";",
                     "paddingTop=" + paddingTop + ";",
                     "paddingBottom=" + paddingBottom + ";",
                     "digestAlgorithm=SHA-256;",
                     "digestLength=32;", // SHA-256: 256 bits = 32 bytes
-                    "previousDigestIndex=2;",
-                    "fileNameIndex=3;",
+                    "previousDigestIndex=2;", // optional, index always 2
+                    "fileNameIndex=3;", // optional, index always 3
                     "UUID=" + this.fileUUID.toString() + ";",
                     "\0"
             ), headerRow.getAndIncrement()); // header[1] // header data
@@ -405,6 +415,21 @@ public class FileToPNG {
         this.sendFinished();
     }
 
+    public static String detectFileName(File inputDirectory) throws IOException {
+        File[] pngFiles = inputDirectory.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+        if (pngFiles == null || pngFiles.length == 0) {
+            return null;
+        }
+        Arrays.sort(pngFiles);
+        Part[] parts = new Part[pngFiles.length];
+
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = new Part(pngFiles[i]);
+        }
+
+        return parts[0].getFileName();
+    }
+
     public void restoreSync() throws IOException {
         if (this.saveInProgress || this.restoreInProgress) throw new IOException("Already running save or restore");
         this.restoreInProgress = true;
@@ -414,47 +439,253 @@ public class FileToPNG {
             throw new IOException("No PNG files found.");
         }
         Arrays.sort(pngFiles);
-        PngReaderByte[] pngReaders = new PngReaderByte[pngFiles.length];
-        @SuppressWarnings("unchecked")
-        Map<String, String>[] configs = new Map[pngFiles.length];
-        for (int i = 0; i < pngReaders.length; i++) {
-            pngReaders[i] = new PngReaderByte(pngFiles[i]);
+        Part[] parts = new Part[pngFiles.length];
+
+        for (int i = 0; i < parts.length; i++) {
+            parts[i] = new Part(pngFiles[i]);
         }
 
-        FileOutputStream outputStream = new FileOutputStream(this.file);
-
-        // parse header data
-        for (PngReaderByte pngR : pngReaders) { // magic bytes
-            ImageLineByte imgL = pngR.readRowByte();
-            byte[] bytes = imgL.getScanline(); // header[0]
-            byte[] magicBytes = "de.justusd.filetopng".getBytes(StandardCharsets.UTF_8);
-            for (int i = 0; i < magicBytes.length; i++) {
-                if (bytes[i] != magicBytes[i]) throw new IOException("Magic byte mismatch!");
-            }
+        for (Part part : parts) {
+            HeaderConfig c = part.getConfig();
+            System.out.println("part: " + c.getPart() + ", UUID: " + c.getUUID() + ", fileName: " + part.getFileName());
         }
 
-        for (int i = 0; i < pngReaders.length; i++) { // config pixels
-            PngReaderByte pngR = pngReaders[i];
-            ImageLineByte imgL = pngR.readRowByte();
-            byte[] bytes = imgL.getScanline(); // header[1]
+        Part[] filteredParts = Part.filterPartsByUUID(parts, parts[0].getConfig().getUUID());
+        if (filteredParts.length == 0) {
+            throw new IOException("No parts available");
+        }
+        this.fileSize = filteredParts[0].getConfig().getFileSize();
 
-            int j;
-            for (j = 0; j < bytes.length && bytes[j] != (byte) 0x00; j++) continue;
-            String rawConfig = new String(bytes, 0, j, StandardCharsets.UTF_8);
-            String[] values = rawConfig.split(";");
-            Map<String, String> config = new HashMap<>();
-            for (String value : values) {
-                String[] kv = value.split("=");
-                if (kv.length == 2) {
-                    config.put(kv[0], kv[1]);
-                }
+        // Data loop
+        FileOutputStream outputStream = new FileOutputStream(this.file.getAbsoluteFile());
+        Digest digest = new Digest();
+        long bytesRemaining = parts[0].getConfig().getFileSize();
+        for (Part part : filteredParts) {
+            part.forwardToData();
+            long partBytesRemaining = part.getConfig().getContentLength();
+            Digest digestPart = new Digest();
+            for (byte[] bytes : part.getDataIterable()) {
+                int bytesToBeWrittenLength = (int) Math.min(bytesRemaining, bytes.length);
+                byte[] bytesToBeWritten = new byte[bytesToBeWrittenLength];
+                System.arraycopy(bytes, 0, bytesToBeWritten, 0, bytesToBeWritten.length);
+                digest.update(bytesToBeWritten);
+                digestPart.update(bytesToBeWritten);
+                outputStream.write(bytesToBeWritten);
+                bytesRemaining -= bytesToBeWritten.length;
+                this.processedNBytes(bytesToBeWritten.length);
             }
-            configs[i] = config;
+            part.readRowByte();
+            byte[] digestBytesPart = new byte[32];
+            System.arraycopy(part.getScanline(), 0, digestBytesPart, 0, digestBytesPart.length);
+            System.out.println(byteToHexString(digestBytesPart));
+            byte[] digestBytesAll = new byte[32];
+            System.arraycopy(part.getScanline(), 0, digestBytesAll, 0, digestBytesAll.length);
+            outputStream.flush();
+            if (!( Arrays.equals(digestBytesAll, digest.digest()) && Arrays.equals(digestBytesPart, digestPart.digest()) )) {
+                throw new IOException("Digest mismatch in part" + part.getConfig().getPart() + "!");
+            }
         }
 
         // cleanup
+        outputStream.flush();
         outputStream.close();
         this.sendFinished();
+    }
+
+}
+
+class HeaderConfig {
+
+    private final Map<String, String> config = new HashMap<>();
+    private final int part;
+    private final long contentLength;
+    private final long fileSize;
+
+    public HeaderConfig(byte[] bytes) throws IOException {
+        String rawConfig = getStringFromBytes(bytes);
+        String[] values = rawConfig.split(";");
+        for (String value : values) {
+            String[] kv = value.split("=");
+            if (kv.length == 2) {
+                config.put(kv[0], kv[1]);
+            }
+        }
+        this.part = this.getIntValue("part");
+        this.fileSize = this.getLongValue("fileSize");
+        this.contentLength = this.getIntValue("contentLength");
+    }
+
+    public static String getStringFromBytes(byte[] bytes) { // nullbyte-terminated
+        int j;
+        for (j = 0; j < bytes.length && bytes[j] != (byte) 0x00; j++) continue;
+        return new String(bytes, 0, j, StandardCharsets.UTF_8);
+    }
+
+    public int getIntValue(String key) throws IOException {
+        try {
+            return Integer.parseInt(this.config.get(key));
+        } catch (NumberFormatException e) {
+            throw new IOException("Header corrupt: could not get int value for '" + key + "'.");
+        }
+    }
+
+    public long getLongValue(String key) throws IOException {
+        try {
+            return Long.parseLong(this.config.get(key));
+        } catch (NumberFormatException e) {
+            throw new IOException("Header corrupt: could not get long value for '" + key + "'.");
+        }
+    }
+
+    public UUID getUUID() throws IOException {
+        try {
+            return UUID.fromString(this.config.get("UUID"));
+        } catch (IllegalArgumentException e) {
+            throw new IOException("Header corrupt: could not parse UUID.");
+        }
+    }
+
+    public int getPart() {
+        return this.part;
+    }
+
+    public long getContentLength() {
+        return this.contentLength;
+    }
+
+    public long getFileSize() {
+        return this.fileSize;
+    }
+
+    public int getEdge() throws IOException {
+        return this.getIntValue("edge");
+    }
+
+    public int getPaddingTop() throws IOException {
+        return this.getIntValue("paddingTop");
+    }
+
+    public int getPaddingBottom() throws IOException {
+        return this.getIntValue("paddingTop");
+    }
+
+    public int getPreviousDigestIndex() throws IOException {
+        return this.getIntValue("previousDigestIndex");
+    }
+
+    public int getFileNameIndex() throws IOException {
+        return this.getIntValue("fileNameIndex");
+    }
+
+}
+
+class Part { // Data class for PNG part
+
+    private final HeaderConfig config;
+    private final PngReaderByte pngR;
+    private final AtomicInteger cursor = new AtomicInteger(0);
+    private final File imageFile;
+    private String fileName;
+    private long contentLength;
+    private final int edge;
+    private final int paddingTop;
+    private final int paddingBottom;
+    byte[] previousDigest;
+
+    Part(File imageFile) throws IOException {
+        this.imageFile = imageFile;
+        this.pngR = new PngReaderByte(imageFile);
+        byte[] bytes = this.getScanline(); // header[0]
+        byte[] magicBytes = "de.justusd.filetopng".getBytes(StandardCharsets.UTF_8);
+        for (int i = 0; i < magicBytes.length; i++) {
+            if (bytes[i] != magicBytes[i]) throw new IOException("Magic byte mismatch!");
+        }
+        this.config = new HeaderConfig(this.getScanline()); // header[1]
+        this.contentLength = this.config.getContentLength();
+        this.edge = this.config.getEdge();
+        this.paddingTop = this.config.getPaddingTop();
+        this.paddingBottom = this.config.getPaddingBottom();
+        this.previousDigest = new byte[32];
+        byte[] previousDigestRaw = this.getScanline(); // header[2]
+        System.arraycopy(previousDigestRaw, 0, previousDigest, 0, previousDigest.length);
+        this.fileName = HeaderConfig.getStringFromBytes(this.getScanline()); // header[3]
+    }
+
+    public static Part[] filterPartsByUUID(Part[] parts, UUID fileUUID) throws IOException {
+        List<Part> result = new ArrayList<>();
+        for (Part part : parts) {
+            if (part.getConfig().getUUID().equals(fileUUID)) {
+                result.add(part);
+            }
+        }
+        result.sort(Comparator.comparingInt((Part a) -> a.getConfig().getPart()));
+        return result.toArray(new Part[0]);
+    }
+
+    public HeaderConfig getConfig() {
+        return this.config;
+    }
+
+    public String getFileName() {
+        return this.fileName;
+    }
+
+    public ImageLineByte readRowByte() throws IOException {
+        if (this.pngR.hasMoreRows()) {
+            IImageLine line = this.pngR.readRow(this.cursor.getAndIncrement());
+            return (ImageLineByte) line;
+        } else {
+            throw new IOException("No more rows.");
+        }
+    }
+
+    public byte[] getScanline() throws IOException {
+        return this.readRowByte().getScanline();
+    }
+
+    public void forwardToData() throws IOException {
+        while (this.cursor.get() < this.paddingTop) {
+            this.readRowByte();
+        }
+    }
+
+    public Iterable<byte[]> getDataIterable() {
+        if (this.currentRow() < this.paddingTop || this.currentRow() > paddingTop + edge) return null;
+        var lineIterator = new Iterator<byte[]>() {
+            @Override
+            public boolean hasNext() {
+                return Part.this.currentRow() > paddingTop - 1 && Part.this.currentRow() < paddingTop + edge;
+            }
+
+            @Override
+            public byte[] next() {
+                if (this.hasNext()) {
+                    try {
+                        return Part.this.getScanline();
+                    } catch (IOException ignored) {}
+                }
+                return null;
+            }
+        };
+        return new Iterable<byte[]>() {
+            @NotNull
+            @Override
+            public Iterator<byte[]> iterator() {
+                return lineIterator;
+            }
+        };
+    }
+
+    public AtomicInteger getCursor() {
+        return this.cursor;
+    }
+
+    public int currentRow() {
+        return this.cursor.get();
+    }
+
+    public File getImageFile() {
+        return this.imageFile;
     }
 
 }
