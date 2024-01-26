@@ -6,7 +6,7 @@
 
     <groupId>de.justusd.filetopng</groupId>
     <artifactId>FileToPNG</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.1</version>
     <name>FileToPNG</name>
 
     <developers>
