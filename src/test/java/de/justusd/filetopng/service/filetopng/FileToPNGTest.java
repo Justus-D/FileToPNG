@@ -1,4 +1,4 @@
-package de.justusd.filetopng.service;
+package de.justusd.filetopng.service.filetopng;
 
 import de.justusd.filetopng.service.filetopng.FileToPNG;
 import org.junit.jupiter.api.Test;
