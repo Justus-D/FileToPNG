@@ -39,7 +39,6 @@ jobs:
       run: |
         aws s3 cp target/ s3://${AWS_S3_BUCKET_NAME}/FileToPNG/releases/tag/${RELEASE}/ \
         --recursive \
-        --exclude "target/dependencies/*" \
         --exclude "*" \
         --include "FileToPNG*.jar" \
         --quiet \
