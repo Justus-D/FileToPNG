@@ -8,8 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -17,7 +15,6 @@ import javafx.stage.Stage;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 
 public class MainController {
 
@@ -46,7 +43,6 @@ public class MainController {
     public Label restoreStatus;
     public ProgressBar restoreProgressBar;
     public Button detectFileNameButton;
-    public WebView webView;
     private File inputFile;
     private File outputDirectory;
     private File inputDirectory;
@@ -62,10 +58,6 @@ public class MainController {
             this.saveDebug.setVisible(true);
             this.restoreDebugButton.setVisible(true);
         }
-        WebEngine webEngine = this.webView.getEngine();
-        webView.setContextMenuEnabled(false);
-        URL url = this.getClass().getResource("/de/justusd/filetopng/about.html");
-        webEngine.load(String.valueOf(url));
     }
 
     public void setInputFile(File inputFile) {

@@ -2,8 +2,7 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.web.WebHistory?>
-<?import javafx.scene.web.WebView?>
+<?import org.fxmisc.richtext.CodeArea?>
 <AnchorPane minHeight="400.0" minWidth="600.0" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="de.justusd.filetopng.controllers.MainController">
     <VBox fx:id="vBox" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <!--<MenuBar>
@@ -83,9 +82,53 @@
                 </AnchorPane>
             </Tab>
             <Tab text="About">
-                <AnchorPane minHeight="0.0" minWidth="0.0">
-                    <WebView fx:id="webView" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
-                </AnchorPane>
+                <!--<ScrollPane fitToWidth="true" fitToHeight="true">
+                    <VBox VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" alignment="CENTER">
+                        <CodeArea fx:id="codeArea" wrapText="true" editable="false"/>
+                    </VBox>
+                </ScrollPane>-->
+                <VBox style="-fx-padding: 16px">
+                    <Label wrapText="true" prefWidth="500" style="-fx-font-size: 2em">
+                        About
+                    </Label>
+                    <HBox>
+                        <Label wrapText="true" style="-fx-font-weight: bold">
+                            FileToPNG
+                        </Label>
+                        <Label wrapText="true">
+                            : Save files in PNG images
+                        </Label>
+                    </HBox>
+                    <Label wrapText="true" prefWidth="500">
+                        Copyright (c) 2024, Justus Dietrich
+                    </Label>
+                    <Label wrapText="true" prefWidth="500">
+                        https://github.com/Justus-D/FileToPNG
+                    </Label>
+                    <Label wrapText="true" prefWidth="500"> </Label>
+                    <Label wrapText="true" prefWidth="500">
+                        This application can write the contents of a file into a PNG image.
+                        It can also retrieve the written data later on. A hash is being
+                        calculated while writing data to a PNG. This ensures that possible
+                        corruption of the data can be detected when restoring the data from
+                        one or more PNGs. There is no limit for the file size of a stored
+                        file. Each generated PNG can hold up to 1_200_000_000 bytes. After
+                        that, a new PNG is used to store further data. Each generated PNG
+                        has a file name in the format "YYYY-MM-DD_hh-mm-ss_part&lt;index&gt;.png"
+                        If you want to recover the data stored in a generated PNG, you need
+                        to select the folder in which the generated PNG files are stored.
+                        If there is more than one PNG file which stores a file, the first
+                        one will be selected for recovery.
+                    </Label>
+                    <Label wrapText="true" prefWidth="500">
+                    </Label>
+                    <Label wrapText="true" prefWidth="500">
+                    </Label>
+                    <Label wrapText="true" prefWidth="500">
+                    </Label>
+                    <Label wrapText="true" prefWidth="500">
+                    </Label>
+                </VBox>
             </Tab>
         </TabPane>
     </VBox>

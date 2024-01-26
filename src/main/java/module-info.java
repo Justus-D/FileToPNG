@@ -5,8 +5,6 @@ module de.justusd.filetopng {
     requires static annotations;
     requires java.desktop;
     requires java.logging;
-    requires javafx.web;
-
 
     opens de.justusd.filetopng to javafx.fxml;
     exports de.justusd.filetopng;
