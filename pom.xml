@@ -6,8 +6,23 @@
 
     <groupId>de.justusd.filetopng</groupId>
     <artifactId>FileToPNG</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>FileToPNG</name>
+
+    <developers>
+        <developer>
+            <name>Justus Dietrich</name>
+            <id>Justus-D</id>
+            <url>https://justus-d.de</url>
+            <email>git@justus-d.de</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/Justus-D/FileToPNG</url>
+        <connection>scm:git:https://github.com/Justus-D/FileToPNG.git</connection>
+        <developerConnection>scm:git:https://github.com/Justus-D/FileToPNG.git</developerConnection>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
