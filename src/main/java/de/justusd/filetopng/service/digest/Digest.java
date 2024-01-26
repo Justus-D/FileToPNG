@@ -1,4 +1,4 @@
-package de.justusd.filetopng.service;
+package de.justusd.filetopng.service.digest;
 
 import org.jetbrains.annotations.NotNull;
 

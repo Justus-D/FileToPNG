@@ -1,6 +1,6 @@
 package de.justusd.filetopng.controllers;
 
-import de.justusd.filetopng.service.FileToPNG;
+import de.justusd.filetopng.service.filetopng.FileToPNG;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -11,7 +11,6 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;

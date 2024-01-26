@@ -1,5 +1,6 @@
 package de.justusd.filetopng.service;
 
+import de.justusd.filetopng.service.filetopng.FileToPNG;
 import org.junit.jupiter.api.Test;
 
 import java.security.MessageDigest;
