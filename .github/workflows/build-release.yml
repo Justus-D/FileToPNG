@@ -26,7 +26,21 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: release-jar
-        path: target/*release.jar
+        path: target/*.jar
+
+    - name: Publish release to R2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: 'us-east-1'
+        AWS_S3_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+        CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        RELEASE: ${{ github.ref_name }}
+      run: |
+        aws s3 cp ./target/*.jar $AWS_S3_BUCKET_NAME/FileToPNG/releases/tag/${RELEASE}/ \
+        --recursive \
+        --quiet \
+        --endpoint-url https://${CF_ACCOUNT}.eu.r2.cloudflarestorage.com
 
   release:
     needs: build
