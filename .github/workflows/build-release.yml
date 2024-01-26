@@ -43,5 +43,5 @@ jobs:
       run: echo "Release ${{ steps.create_release.outputs.upload_url }}"
 
     - name: List files in target directory
-      run: ls -R target
+      run: ls -lah .
       working-directory: ${{ github.workspace }}
