@@ -35,6 +35,84 @@ Or use your favourite search engine to find one.
 On Linux you can just use your favourite package manager to install
 an OpenJDK version (21+).
 
+## Why?
+
+This application may seem completely useless. And to some extent, it is.
+I learned a lot of Java in my university and this is my first real application
+written in Java. The code may look a bit chaotic, so please don't judge me.
+So this is really just a bit of coding practice for me.
+
+However, there are cloud services that let you sync an unlimited amount of
+photos in original quality. You could use this program to "convert" all your
+files into photos and enjoy unlimited storage space. Even though this might work,
+I wouldn't recommend it, as it is highly impractical. It may also be against the
+terms of service of some providers. So please check those before you upload anything.
+
+## The format
+
+The file format of the output files is PNG. The pixels of the PNG represent the data
+of the files.
+
+### Basics
+
+Each pixel has three color channels: R for red, G for green and B for blue.
+Each color uses one byte. So that gives us three bytes of data per pixel.
+
+### The header
+
+The first lines of a FileToPNG-generated PNG file always contain metadata
+about the file. In the following explanation I will use `header[index]` to
+describe what line I am referring to. Counting begins at 0.
+
+#### `header[0]`: Magic bytes
+
+The first few pixels are what I call the "magic bytes". They are there to
+identify whether a PNG file was generated with this tool or not. The pixels
+are (in hexadecimal):
+`#64652E` `#6A7573` `#747573` `#642E66` `#696C65` `#746F70` `#6E6700`.
+The bytes of those pixels put together are just the package name in the
+form of (ASCII) bytes: `de.justusd.filetopng`.
+
+#### `header[1]`: Metadata
+
+All bytes of pixel-data must be interpreted as a UTF-8 character sequence
+until a null-byte (`0x00`) occurs. This is also known as a null-byte
+terminated string. The resulting string consists of multiple key-value pairs
+in the format: `key1=value;key2=value;key3=value`.
+
+The following key-value pairs will usually be present:
+
+| key                 | data type | description (default value)                                          |
+|---------------------|-----------|----------------------------------------------------------------------|
+| version             | int       | version number (1)                                                   |
+| part                | int       | part index                                                           |
+| fileSize            | long      | total file size in bytes                                             |
+| contentLength       | long      | how many bytes of data there are in this part                        |
+| edge                | int       | the size of one edge of the pixels that contain data                 |
+| paddingTop          | int       | how many rows of pixels there are until the file content starts (96) |
+| paddingBottom       | int       | how many rows of pixels there are after the file content ends (64)   |
+| digestAlgorithm     | String    | which digest algorithm to use for hashing ("SHA-256")                |
+| digestLength        | int       | how many bytes the digest occupies (32)                              |
+| previousDigestIndex | int       | the index of the pixel-row containing the previous digest, always 3  |
+| fileNameIndex       | int       | the index of the pixel-row containing the file name, always 3        |
+| UUID                | String    | the string representation of a UUID, used to identify a single file  |
+
+#### `header[2]`: Digest of previous part
+
+The first 32 bytes of pixel-data represent the SHA-256 hash of the content
+of the previous part.
+
+#### `header[3]`: File name
+
+All bytes of pixel-data must be interpreted as a UTF-8 character sequence
+until a null-byte (`0x00`) occurs. The resulting string is the file name.
+
+#### The rest of the header
+
+The remaining rows of pixels are there for visually representing metadata
+about the file. They will not be parsed on recovery and are there to help
+identify the contents of the PNG file.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 (GPLv3).
