@@ -1,7 +1,7 @@
 # FileToPNG
 
-![GitHub License](https://img.shields.io/github/license/Justus-D/FileToPNG)
-![GitHub Release](https://img.shields.io/github/v/release/Justus-D/FileToPNG?sort=semver&filter=v*)
+[![GitHub License](https://img.shields.io/github/license/Justus-D/FileToPNG)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/Justus-D/FileToPNG?sort=semver&filter=v*)](https://github.com/Justus-D/FileToPNG/releases/latest)
 
 **FileToPNG** is a tool that lets you write the contents of a file
 into a PNG image. It can also retrieve the written data later on.
