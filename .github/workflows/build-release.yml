@@ -19,6 +19,7 @@ jobs:
         distribution: "zulu"
         java-package: "jdk+fx"
         java-version: "21"
+        architecture: "x64"
 
     - name: Build with Maven
       run: mvn clean package
