@@ -17,6 +17,7 @@ jobs:
       uses: actions/setup-java@v4
       with:
         distribution: "zulu"
+        java-package: "jdk+fx"
         java-version: "21"
 
     - name: Build with Maven
