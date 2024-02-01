@@ -27,6 +27,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -349,7 +351,8 @@ public class FileToPNG {
         int partNo = 0;
         while (remainingBytes > 0) {
 
-            File partFile = new File(this.directory.getAbsolutePath() + "\\" + partPrefix + partNo + ".png");
+            Path outPath = Paths.get(this.directory.getAbsolutePath(), partPrefix + partNo + ".png");
+            File partFile = new File(outPath.toString());
             outputFiles.add(partFile);
             Digest digestPart = this.getMdInstance();
             messageDigests.add(digestPart);
